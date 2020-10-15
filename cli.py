@@ -46,7 +46,7 @@ def open_device_connection(ctx: object):
         with dev:
             yield dev
     except SerialConnectionError as err:
-        if(verbose):
+        if(ctx.obj['verbose']):
             raise err
         raise click.ClickException(str(err))
 
