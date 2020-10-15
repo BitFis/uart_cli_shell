@@ -86,6 +86,10 @@ class ScreenEndpoint:
         if(verbose):
             print("Start command: '{}'".format(self.cmd))
 
+    @staticmethod
+    def version() -> str:
+        return "v0.0.1"
+
     def open_connection(self):
         self.child = pexpect.spawn(self.cmd, env=self.screen_env)
         time.sleep(0.1)

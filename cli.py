@@ -65,6 +65,11 @@ def cli(ctx, port, simulation, verbose):
 
 @cli.command(help = "Enable tracing logs [Currently only simulated device]")
 @click.pass_context
+def version(ctx):
+    print(str(Device.version()))
+
+@cli.command(help = "Enable tracing logs [Currently only simulated device]")
+@click.pass_context
 def trace(ctx):
     if(ctx.obj["port"]):
         raise click.ClickException("Only possible for dockerized simulated device (--simulation)")
