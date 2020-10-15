@@ -63,16 +63,10 @@ def cli(ctx, port, simulation, verbose):
     if(not (port or simulation)):
         raise click.ClickException("Eather UART device and Docker device needs to be defined for access!")
 
-    if(port):
-        ctx.obj["create_device"] = lambda: Device(port, verbose=verbose)
-    else:
-        console_path = os.path.abspath("../docker/device/console.sh")
-        ctx.obj["create_device"] = lambda: Device(console_path, simulation, verbose=verbose)
-
 @cli.command(help = "Enable tracing logs [Currently only simulated device]")
 @click.pass_context
 def trace(ctx):
-    if(not ctx.obj["simulation"]):
+    if(ctx.obj["port"]):
         raise click.ClickException("Only possible for dockerized simulated device (--simulation)")
     sim_id = ctx.obj["simulation"]
 
@@ -92,7 +86,7 @@ def start(ctx, dockerimage = DEFAULT_DEVICE):
     Will start a dockerized device.
     The --simulation arg represents the Openthread ID / communication ID in simulated network
     """
-    if(not ctx.obj["simulation"]):
+    if(ctx.obj["port"]):
         raise click.ClickException("Only possible for dockerized simulated device (--simulation)")
     sim_id = ctx.obj["simulation"]
 
@@ -109,7 +103,7 @@ def stop(ctx):
     """Will stop the dockerized device
 
     """
-    if(not ctx.obj["simulation"]):
+    if(ctx.obj["port"]):
         raise click.ClickException("Only possible for dockerized simulated device (--simulation)")
     sim_id = ctx.obj["simulation"]
 
@@ -144,7 +138,7 @@ def send(ctx, command):
     command = ' '.join(command)
 
     click.echo('Sending command "{}"'.format(command))
-    with ctx.obj["create_device"]() as dev:
+    with open_device_connection(ctx) as dev:
         dev.send_command(command)
 
 if __name__ == '__main__':
