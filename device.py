@@ -73,7 +73,7 @@ class ScreenEndpoint:
         defaultTimeoutSeconds = 2, #> set default timeout for function in sec.
         _custom_connect = "screen {screenArgs}", #> customize process call
         verbose = False, #> show verbously hints and everything
-        quite=False, #> define if any output of device is hidden
+        quite=False #> define if any output of device is hidden
         ):
         self.verbose = verbose
         self.success_regex = successRegex
@@ -131,8 +131,7 @@ class ScreenEndpoint:
         # expect it to close
         self.child.expect(pexpect.EOF, timeout=4)
 
-    def send_command(self, cmd: str, io: TextIO = None):
-        self.child.sendline(cmd)
+    def __wait_for_expected_output(self, cmd: str, io: TextIO = None):
         try:
             result = self.child.expect(self.success_regex + self.error_regex, timeout=2)
         except pexpect.exceptions.TIMEOUT as ex:
@@ -150,6 +149,10 @@ class ScreenEndpoint:
             raise DeviceCommandFailed(cmd, self._cleanup_string(self.child.after))
 
         self._print(io, cmd=cmd)
+
+    def send_command(self, cmd: str, io: TextIO = None):
+        self.child.sendline(cmd)
+        self.__wait_for_expected_output(cmd, io)
 
     def shell(self):
         SimpleDevicePrompt(
@@ -190,11 +193,13 @@ class Device(ScreenEndpoint):
     def __init__(self,
             usbPort: str,
             baudrate: int = 115200,
-            _custom_connect = " {usbPort} {baudrate}",
+            log=False, #> Turn on to log any output to file
+            _custom_connect = "{log} {usbPort} {baudrate}",
             verbose = False
         ):
+        _log =("-L" if log else "")
         super(Device, self).__init__(
-            screenArgs=_custom_connect.format(usbPort = usbPort, baudrate = baudrate),
+            screenArgs=_custom_connect.format(log=_log, usbPort = usbPort, baudrate = baudrate),
             verbose=verbose
         )
 

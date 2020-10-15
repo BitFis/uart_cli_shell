@@ -5,9 +5,8 @@ access to a device connected over UART
 per usb
 '''
 
-import click, os
+import click, os, io, subprocess
 from device import Device, JoinerMethod, SerialConnectionError
-import subprocess
 from contextlib import contextmanager
 
 DEFAULT_DEVICE="docker.siemens.com/thread/secure-onboarding-thread-1.2/device"
@@ -28,13 +27,20 @@ DEFAULT_DEVICE="docker.siemens.com/thread/secure-onboarding-thread-1.2/device"
 def open_device_connection(ctx: object):
     port = ctx.obj['port']
     simulation = ctx.obj["simulation"]
-    verbose = ctx.obj['verbose']
+    custom = ctx.obj["custom"]
 
-    if(port):
-        dev = Device(port, verbose=verbose)
+    default_args = {
+        'log': ctx.obj['log'],
+        'verbose': ctx.obj['verbose']
+    }
+
+    if(custom):
+        dev = Device(0, _custom_connect="/bin/sh -c \""+custom+"\"", **default_args)
+    elif(port):
+        dev = Device(port, **default_args)
     else:
         console_path = os.path.abspath("../docker/device/console.sh")
-        dev = Device(console_path, simulation, verbose=verbose)
+        dev = Device(console_path, simulation, **default_args)
 
     try:
         with dev:
@@ -49,13 +55,19 @@ def open_device_connection(ctx: object):
               help='Define the usb serial port of the device aka. /dev/ttyACM0')
 @click.option('-s', '--simulation', default=2, type=int,
               help='Define the dockerized device endpoint id to access')
+@click.option('-c', '--custom', default=False, type=str,
+              help='Define a custom way of starting the endpoint (like binary file), ! will always overwrite -s and -p')
 @click.option('-v', '--verbose', default=False, is_flag=True,
               help='set verbose mode, output all device logs')
+@click.option('-l', '--log', default=False, is_flag=True,
+              help='Log interaction to file')
 @click.pass_context
-def cli(ctx, port, simulation, verbose):
+def cli(ctx, port, simulation, verbose, custom, log):
     ctx.obj['port'] = port
     ctx.obj["simulation"] = simulation
+    ctx.obj["custom"] = custom
     ctx.obj['verbose'] = verbose
+    ctx.obj['log'] = log
 
     if(port and simulation != 2):
         raise click.ClickException("UART device and Docker device can not be accessed simultaneously!")
@@ -68,11 +80,7 @@ def cli(ctx, port, simulation, verbose):
 def version(ctx):
     print(str(Device.version()))
 
-@cli.command(help = "Enable tracing logs [Currently only simulated device]")
-@click.pass_context
-def trace(ctx):
-    if(ctx.obj["port"]):
-        raise click.ClickException("Only possible for dockerized simulated device (--simulation)")
+def trace_simulation(ctx):
     sim_id = ctx.obj["simulation"]
 
     click.echo('Tracing device {}, CTRL-C to exit trace'.format(sim_id))
@@ -83,6 +91,14 @@ def trace(ctx):
                      stdout=click.get_binary_stream('stdout'),
                      stdin=click.get_binary_stream('stdin'),
                      stderr=click.get_binary_stream('stderr'))
+
+@cli.command(help = "Enable tracing logs [Currently only simulated device]")
+@click.pass_context
+def trace(ctx):
+    if(ctx.obj["port"] or ctx.obj["custom"]):
+        raise click.ClickException("Only possible for dockerized simulated device (--simulation)")
+
+    trace_simulation(ctx)
 
 @cli.command(help = "Will start the dockerized device")
 @click.pass_context
