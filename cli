@@ -1,0 +1,30 @@
+#!/bin/bash
+
+cd "$( dirname "${BASH_SOURCE[0]}" )"
+
+# print error kill, script and print call stack
+die() {
+    echo -e "ERROR: $@"
+
+    # build and print stacktrace with caller
+    local cur_call=(${LINENO} ${FUNCNAME[0]} ${BASH_SOURCE[0]})
+    local i=0
+    while [[ ! -z "${cur_call[@]}" ]]; do
+        echo "   ${cur_call[2]}:${cur_call[0]} - ${cur_call[1]}"
+
+        cur_call=($(caller $i))
+        i=$((i+1))
+    done
+    exit 1
+}
+
+is_installed() {
+    [[ ! $(command -v "$1" 2> /dev/null) ]] && die "$1 is missing"
+}
+
+is_installed python3
+
+# check if first run
+[[ ! -d ".ot-test-env" ]] && make
+
+_CLI_PROG_NAME=$(basename "${BASH_SOURCE-}") ./cli.py $@

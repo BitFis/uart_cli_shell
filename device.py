@@ -146,6 +146,7 @@ class ScreenEndpoint:
             return
 
         if(result >= self.success_regex.__len__()):
+            self._print(io, cmd=cmd, only_before=True)
             raise DeviceCommandFailed(cmd, self._cleanup_string(self.child.after))
 
         self._print(io, cmd=cmd)
@@ -160,11 +161,11 @@ class ScreenEndpoint:
             empty_callback=lambda: self.test_connected()
         ).cmdloop()
 
-    def _print(self, io: TextIO = None, cmd:str = ""):
+    def _print(self, io: TextIO = None, cmd:str = "", only_before=False):
         before = self._cleanup_string(self.child.before)
         # remove cmd if it is reoccuring
         before = re.sub(r'^(\n *)*>? *'+cmd+'(\n *)*', '', str(before))
-        after = self._cleanup_string(self.child.after)
+        after = self._cleanup_string(self.child.after) if not only_before else ""
         if(io == None):
             print(before, after)
         else:
@@ -181,7 +182,7 @@ class ScreenEndpoint:
 
     def _cleanup_string(self, string: str):
         # setup new lines
-        string = re.sub(r'(\\r)?\\n', '\n', str(string))
+        string = re.sub(r'(\\r)?\\n(\\r)?', '\n', str(string))
         # remove start end of byte info
         return re.sub(r'(^b(\'|")|(\'|")$)', '', string)
 

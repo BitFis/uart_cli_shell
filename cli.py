@@ -6,7 +6,7 @@ per usb
 '''
 
 import click, os, io, subprocess
-from device import Device, JoinerMethod, SerialConnectionError
+from device import Device, JoinerMethod, SerialConnectionError, DeviceCommandFailed
 from contextlib import contextmanager
 
 DEFAULT_DEVICE="docker.siemens.com/thread/secure-onboarding-thread-1.2/device"
@@ -35,7 +35,7 @@ def open_device_connection(ctx: object):
     }
 
     if(custom):
-        dev = Device(0, _custom_connect="/bin/sh -c \""+custom+"\"", **default_args)
+        dev = Device(0, _custom_connect="{log} /bin/sh -c \""+custom+"\"", **default_args)
     elif(port):
         dev = Device(port, **default_args)
     else:
@@ -45,7 +45,7 @@ def open_device_connection(ctx: object):
     try:
         with dev:
             yield dev
-    except SerialConnectionError as err:
+    except (SerialConnectionError, DeviceCommandFailed) as err:
         if(ctx.obj['verbose']):
             raise err
         raise click.ClickException(str(err))
@@ -163,4 +163,4 @@ def send(ctx, command):
         dev.send_command(command)
 
 if __name__ == '__main__':
-    cli(obj={})
+    cli(obj={}, prog_name=os.getenv('_CLI_PROG_NAME', default=None))
