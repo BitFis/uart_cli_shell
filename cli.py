@@ -11,18 +11,10 @@ from contextlib import contextmanager
 
 DEFAULT_DEVICE="docker.siemens.com/thread/secure-onboarding-thread-1.2/device"
 
-#def device_creator(serial_type: str, args):
-#    endpoint_types = {
-#        "uart": lambda endpoint: print("uart {}".format(endpoint)),
-#        "docker": lambda: print("docker")
-#    }
-#    factory_method = endpoint_types.get(serial_type)
-#
-#    if factory_method == None:
-#        raise Exception("endpoint '{}' is not supported".format(serial_type))
-#
-#    return lambda: factory_method(*args)
-
+'''
+Creates a Device connection object
+to work with
+'''
 @contextmanager
 def open_device_connection(ctx: object):
     port = ctx.obj['port']
@@ -50,7 +42,19 @@ def open_device_connection(ctx: object):
             raise err
         raise click.ClickException(str(err))
 
-@click.group()
+class DefaultCommandGroup(click.Group):
+    """allow a default command for a group"""
+
+    def resolve_command(self, ctx, args):
+        try:
+            # test if the command parses
+            return super(DefaultCommandGroup, self).resolve_command(ctx, args)
+        except click.UsageError:
+            # command did not parse, assume it is the default command
+            args.insert(0, "send")
+            return super(DefaultCommandGroup, self).resolve_command(ctx, args)
+
+@click.group(cls=DefaultCommandGroup)
 @click.option('-p', '--port', default=False,
               help='Define the usb serial port of the device aka. /dev/ttyACM0')
 @click.option('-s', '--simulation', default=2, type=int,
@@ -102,7 +106,7 @@ def trace(ctx):
 
 @cli.command(help = "Will start the dockerized device")
 @click.pass_context
-def start(ctx, dockerimage = DEFAULT_DEVICE):
+def start(ctx, dockerimage = os.getenv('DEFAULT_IMAGE')):
     """
     Will start a dockerized device.
     The --simulation arg represents the Openthread ID / communication ID in simulated network
@@ -148,7 +152,7 @@ def shell(ctx):
         dev.shell()
         print('Done')
 
-@cli.command(help = "Send a command to the device")
+@cli.command(help = "Send a command to the device (default)")
 @click.argument('command', nargs=-1)
 @click.pass_context
 def send(ctx, command):
