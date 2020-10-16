@@ -26,6 +26,6 @@ is_installed python3
 is_installed screen
 
 # check if first run
-[[ ! -d ".ot-test-env" ]] && make
+[[ ! -d ".ot-test-env" ]] && make init
 
-_CLI_PROG_NAME=$(basename "${BASH_SOURCE-}") ./cli.py $@
+_CLI_PROG_NAME=$(basename "${BASH_SOURCE-}") ./cli.py "$@"
