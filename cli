@@ -19,10 +19,11 @@ die() {
 }
 
 is_installed() {
-    [[ ! $(command -v "$1" 2> /dev/null) ]] && die "$1 is missing"
+    [[ ! $(command -v "$1" 2> /dev/null) ]] && die "'$1' program is missing, please install."
 }
 
 is_installed python3
+is_installed screen
 
 # check if first run
 [[ ! -d ".ot-test-env" ]] && make
