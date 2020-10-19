@@ -23,7 +23,8 @@ def open_device_connection(ctx: object):
 
     default_args = {
         'log': ctx.obj['log'],
-        'verbose': ctx.obj['verbose']
+        'verbose': ctx.obj['verbose'],
+        'timeout': ctx.obj['timeout']
     }
 
     if(custom):
@@ -63,15 +64,18 @@ class DefaultCommandGroup(click.Group):
               help='Define a custom way of starting the endpoint (like binary file), ! will always overwrite -s and -p')
 @click.option('-v', '--verbose', default=False, is_flag=True,
               help='set verbose mode, output all device logs')
+@click.option('-t', '--timeout', default=2, type=float,
+              help='Set default timeout for command in sec.')
 @click.option('-l', '--log', default=False, is_flag=True,
               help='Log interaction to file')
 @click.pass_context
-def cli(ctx, port, simulation, verbose, custom, log):
+def cli(ctx, port, simulation, verbose, custom, log, timeout):
     ctx.obj['port'] = port
     ctx.obj["simulation"] = simulation
     ctx.obj["custom"] = custom
     ctx.obj['verbose'] = verbose
     ctx.obj['log'] = log
+    ctx.obj['timeout'] = timeout
 
     if(port and simulation != 2):
         raise click.ClickException("UART device and Docker device can not be accessed simultaneously!")

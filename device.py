@@ -64,6 +64,7 @@ class SimpleDevicePrompt(Cmd):
             return True
 
 class ScreenEndpoint:
+    # WIP - use config object
     def __init__(self,
         screenArgs: str = "", #> default define screenArgs
         commandList='help', #> Command to show available commands
@@ -73,7 +74,7 @@ class ScreenEndpoint:
         defaultTimeoutSeconds = 2, #> set default timeout for function in sec.
         _custom_connect = "screen {screenArgs}", #> customize process call
         verbose = False, #> show verbously hints and everything
-        quite=False #> define if any output of device is hidden
+        quite=False, #> define if any output of device is hidden,
         ):
         self.verbose = verbose
         self.success_regex = successRegex
@@ -133,16 +134,17 @@ class ScreenEndpoint:
 
     def __wait_for_expected_output(self, cmd: str, io: TextIO = None):
         try:
-            result = self.child.expect(self.success_regex + self.error_regex, timeout=2)
+            result = self.child.expect(self.success_regex + self.error_regex, timeout=self.defaultTimeout)
         except pexpect.exceptions.TIMEOUT as ex:
             self._print(io, cmd=cmd)
             if(self.verbose):
                 traceback.print_exc()
 
+            msg = "call has timedout after {}s".format(self.defaultTimeout)
             if(io == None):
-                print("call has timedout")
+                print(msg)
             else:
-                io.write("call has timedout")
+                io.write(msg)
             return
 
         if(result >= self.success_regex.__len__()):
@@ -196,11 +198,13 @@ class Device(ScreenEndpoint):
             baudrate: int = 115200,
             log=False, #> Turn on to log any output to file
             _custom_connect = "{log} {usbPort} {baudrate}",
-            verbose = False
+            verbose = False,
+            timeout = 2,
         ):
         _log =("-L" if log else "")
         super(Device, self).__init__(
-            screenArgs=_custom_connect.format(log=_log, usbPort = usbPort, baudrate = baudrate),
+            screenArgs=_custom_connect.format(log = _log, usbPort = usbPort, baudrate = baudrate),
+            defaultTimeoutSeconds = timeout,
             verbose=verbose
         )
 
