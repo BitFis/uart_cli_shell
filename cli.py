@@ -9,7 +9,11 @@ import click, os, io, subprocess
 from device import Device, JoinerMethod, SerialConnectionError, DeviceCommandFailed
 from contextlib import contextmanager
 
-DEFAULT_DEVICE="docker.siemens.com/thread/secure-onboarding-thread-1.2/device"
+DEFAULT_DEVICE_PATH=os.environ.get('DEFAULT_DEVICE_PATH', False)
+DEFAULT_IMAGE=os.environ.get('DEFAULT_IMAGE', False)
+
+if(not DEFAULT_IMAGE): raise "Set 'DEFAULT_IMAGE' env variable"
+if(not DEFAULT_DEVICE_PATH): raise "Set 'DEFAULT_DEVICE_PATH' env variable"
 
 '''
 Creates a Device connection object
@@ -32,7 +36,7 @@ def open_device_connection(ctx: object):
     elif(port):
         dev = Device(port, **default_args)
     else:
-        console_path = os.path.abspath("../docker/device/console.sh")
+        console_path = os.path.abspath("{}/console.sh".format(DEFAULT_DEVICE_PATH))
         dev = Device(console_path, simulation, **default_args)
 
     try:
@@ -93,7 +97,7 @@ def trace_simulation(ctx):
 
     click.echo('Tracing device {}, CTRL-C to exit trace'.format(sim_id))
 
-    trace_script = "{script_dir}/../docker/device/trace.sh".format(script_dir = os.path.dirname(os.path.realpath(__file__)))
+    trace_script = "{script_dir}/{rel_path}/trace.sh".format(script_dir = os.path.dirname(os.path.realpath(__file__)), rel_path = DEFAULT_DEVICE_PATH)
 
     subprocess.run([trace_script, str(sim_id)],
                      stdout=click.get_binary_stream('stdout'),
@@ -110,7 +114,7 @@ def trace(ctx):
 
 @cli.command(help = "Will start the dockerized device")
 @click.pass_context
-def start(ctx, dockerimage = os.getenv('DEFAULT_IMAGE')):
+def start(ctx, dockerimage = DEFAULT_IMAGE):
     """
     Will start a dockerized device.
     The --simulation arg represents the Openthread ID / communication ID in simulated network
@@ -121,7 +125,7 @@ def start(ctx, dockerimage = os.getenv('DEFAULT_IMAGE')):
 
     click.echo('Starting device with id "{}" and docker image "{}"'.format(sim_id, dockerimage))
 
-    start_script = "{script_dir}/../docker/device/start.sh".format(script_dir = os.path.dirname(os.path.realpath(__file__)))
+    start_script = "{script_dir}/{rel_path}/start.sh".format(script_dir = os.path.dirname(os.path.realpath(__file__)), rel_path = DEFAULT_DEVICE_PATH)
 
     subprocess.run([start_script, str(sim_id), dockerimage],
                      stdout=click.get_binary_stream('stdout'), stdin=click.get_binary_stream('stdin'))
@@ -138,7 +142,7 @@ def stop(ctx):
 
     click.echo('Try to stop dockerized device with id "{}"'.format(sim_id))
 
-    stop_script = "{script_dir}/../docker/device/stop.sh".format(script_dir = os.path.dirname(os.path.realpath(__file__)))
+    stop_script = "{script_dir}/{rel_path}/stop.sh".format(script_dir = os.path.dirname(os.path.realpath(__file__)), rel_path = DEFAULT_DEVICE_PATH)
 
     subprocess.run([stop_script, str(sim_id)],
                      stdout=click.get_binary_stream('stdout'),
